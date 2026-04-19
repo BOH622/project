@@ -1,0 +1,10 @@
+Hi,
+
+Click this link to sign in to UserCue Projects:
+
+{{ link }}
+
+This link expires in 15 minutes and can only be used once. If you didn't
+request it, you can ignore this email.
+
+— UserCue
