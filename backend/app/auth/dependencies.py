@@ -4,9 +4,10 @@ from __future__ import annotations
 import uuid
 from dataclasses import dataclass
 
-from fastapi import Cookie, Depends, HTTPException, status
+from fastapi import Cookie, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.auth import impersonation as impersonation_service
 from app.auth.session import COOKIE_NAME, InvalidSession, verify
 from app.db import get_session
 from app.models import ImpersonationSession, User
@@ -32,6 +33,7 @@ class SessionContext:
 
 
 async def get_session_context(
+    request: Request,
     session_cookie: str | None = Cookie(default=None, alias=COOKIE_NAME),
     db: AsyncSession = Depends(get_session),
 ) -> SessionContext:
@@ -53,6 +55,11 @@ async def get_session_context(
             raise HTTPException(status.HTTP_401_UNAUTHORIZED, "impersonation session ended")
         if impersonation.super_admin_user_id != user.id:
             raise HTTPException(status.HTTP_403_FORBIDDEN, "impersonation/user mismatch")
+
+        # Audit every request made under this impersonation session.
+        await impersonation_service.record_access(
+            db, impersonation, method=request.method, path=request.url.path
+        )
 
     return SessionContext(user=user, impersonation=impersonation)
 
