@@ -25,4 +25,5 @@ def test_provider_scoped_builds_filtered_query() -> None:
     stmt = provider_scoped(Invitation, org_id)
     compiled = str(stmt.compile(compile_kwargs={"literal_binds": True}))
     assert "provider_org_id" in compiled
-    assert str(org_id) in compiled
+    # SQLAlchemy's literal_binds strips UUID hyphens — compare the hex form.
+    assert org_id.hex in compiled
