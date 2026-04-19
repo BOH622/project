@@ -5,8 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from app.events.bus import bus
 from app.middleware.readonly_impersonation import ReadOnlyImpersonationMiddleware
-from app.routes import admin, auth, health
+from app.routes import admin, auth, health, webhooks_inbound
+from app.webhooks.dispatcher import dispatch
 
 
 def create_app() -> FastAPI:
@@ -28,6 +30,11 @@ def create_app() -> FastAPI:
     app.include_router(health.router)
     app.include_router(auth.router)
     app.include_router(admin.router)
+    app.include_router(webhooks_inbound.router)
+
+    # Wire the outbound webhook dispatcher as a global subscriber.
+    # Any bus.publish(event) automatically fans out to registered OutboundWebhooks.
+    bus.subscribe(None, dispatch)
 
     return app
 
